@@ -16,22 +16,31 @@ A partir d'un jeu de données d'offres d'emplois publiées sur Linkedin, il nous
 3. Les problèmes rencontrés et les solutions apportées ;
 4. Des commentaires explicatifs pour chaque étape.
 
-Afin de mettre en lumière les éléments ci-dessus, notre Rapport se déclinera en 08 points :  
 
-I. Configuration de l'environnement & Accès S3 ;
-II. Définition des formats et Ingestion (Couche BRONZE) ;
-III. Nettoyage & Structuration (Couche SILVER) ;
-IV. Création de la zone analytique (Couche GOLD) ; 
-V. Analyse de données ;
-VI. Application Streamlit ;
-VII. Analyses et interprétations ;
-VIII. Problèmes rencontrés et solutions apportées.
+**Afin de mettre en lumière les éléments ci-dessus, notre Rapport se déclinera en 08 points :**
+
+1. Configuration de l'environnement & Accès S3 ;
+2. Définition des formats et Ingestion (Couche BRONZE) ;
+3. Nettoyage & Structuration (Couche SILVER) ;
+4. Création de la zone analytique (Couche GOLD) ; 
+5. Analyse de données ;
+6. Application Streamlit ;
+7. Analyses et interprétations ;
+8. Problèmes rencontrés et solutions apportées ;
+9. Conclusion ;
+10. Perspectives.
 
 
 
-## I. Configuration de l'environnement & Accès S3
+## 1. Configuration de l'environnement & Accès S3
 
 L'objectif ici est de préparer l'infrastructure dans Snowflake afin de pouvoir accéder aux données hébergées sur le bucket S3.
+
+**04 Actions à mener :**
+* Création de la base de données dédiée au projet ; 
+* Création des Schémas BRONZE et SILVER pour organiser l'architecture Médaillon ;
+* Création du Stage Externe ;
+* Vérification de la connexion.
 
 ```
 -------------------------------------------------------------------------
@@ -62,9 +71,16 @@ LIST @LINKEDIN.BRONZE.LINKEDIN_STAGE;
 
 ```
 
-## II. Définition des formats et Ingestion (Couche BRONZE)
+## 2. Définition des formats et Ingestion (Couche BRONZE)
 
 L'objectif ici est de dire à Snowflake comment lire chaque type de fichier (CSV et JSON) et de les copier dans des tables d'accueil.
+
+**04 Actions à mener :**
+* Définition des Formats de Fichiers ;
+* Création des Tables Bronze (CSV) ;
+* Création des Tables Bronze (JSON) ;
+* Chargement des données (COPY INTO).
+
 
 ```
 -------------------------------------------------------------------------
@@ -157,9 +173,15 @@ SELECT * FROM LINKEDIN.BRONZE.JOB_INDUSTRIES LIMIT 5;
 
 ```
 
-## III. Nettoyage & Structuration (Couche SILVER)
+## 3. Nettoyage & Structuration (Couche SILVER)
 
 Ici on va transformer le JSON brut en colonnes lisibles et convertir les textes en nombres ou en dates pour permettre les calculs.
+
+**03 Actions à mener :**
+* Extraction des données des colonnes VARIANT pour créer des tables relationnelles ;
+* Nettoyage de la table principale (JOB_POSTINGS) ;
+* Nettoyage des tables annexes (CSV).
+
 
 ```
 -------------------------------------------------------------------------
@@ -265,9 +287,14 @@ SELECT * FROM LINKEDIN.SILVER.EMPLOYEE_COUNTS LIMIT 5;
 
 ```
 
-## IV. Création de la zone analytique (Couche GOLD)
+## 4. Création de la zone analytique (Couche GOLD)
 
 L'objectif ici est de construire les tables et vues "métier" qui répondent directement aux questions du projet.
+
+**02 Actions à mener :**
+* Création du Schéma GOLD ;
+* Création de la table de faits (Fact Table).
+
 
 ```
 -------------------------------------------------------------------------
@@ -301,10 +328,12 @@ SELECT * FROM LINKEDIN.GOLD.FACT_JOB_POSTINGS LIMIT 5;
 
 ```
 
-## V. Requêtes et Analyse de données
+## 5. Requêtes et Analyse de données
 
 L'objectif ici est de traduire les objectifs métiers en requêtes SQL performantes.
+Nous allons successivement effectuer les Requête 1 à 5 permettant l'analyse des données demandée dans le cahier des charges.
 
+### Requête 1 : Top 10 des titres de postes les plus publiés par industrie
 ```
 -------------------------------------------------------------------------
 -- PHASE 5 : ANALYSE DE DONNEES
@@ -342,7 +371,13 @@ FROM JobCount
 WHERE rang <= 10 -- On ne garde que les 10 meilleurs
 ORDER BY industry_name, nb_offres DESC;
 
+```
+<img width="995" height="436" alt="Requete 1" src="https://github.com/user-attachments/assets/ce9c3a88-e05d-4a9c-88cd-1597dc1d9f9b" />
 
+
+### Requête 2 : Top 10 des postes les mieux rémunérés par industrie
+
+```
 -- 2 : Top 10 des postes les mieux rémunérés par industrie
 
 WITH UniqueSalaries AS (
@@ -379,7 +414,13 @@ FROM RankedSalaries
 WHERE rang <= 10
 ORDER BY industry_name, max_salary DESC;
 
+```
+<img width="989" height="393" alt="Requete 2" src="https://github.com/user-attachments/assets/a8338063-3ea8-449a-a2e4-148188361a27" />
 
+
+### Requête 3 : Répartition des offres par taille de l'entreprise
+
+```
 -- 3 : Répartition des offres par taille de l'entreprise
 
 SELECT 
@@ -400,7 +441,13 @@ JOIN LINKEDIN.SILVER.COMPANIES c ON j.company_name::INT = c.company_id --En effe
 GROUP BY c.company_size
 ORDER BY c.company_size ASC;
 
+```
+<img width="993" height="347" alt="Requete 3" src="https://github.com/user-attachments/assets/66042966-a539-419f-baac-32cf8b3a1f98" />
 
+
+### Requête 4 : Répartition des offres par secteur d'activité
+
+```
 -- 4 : Répartition des offres par secteur d'activité
 
 SELECT 
@@ -416,7 +463,13 @@ JOIN LINKEDIN.SILVER.COMPANY_INDUSTRIES ci
 GROUP BY ci.industry_name
 ORDER BY nb_offres DESC;
 
+```
+<img width="994" height="449" alt="Requete 4" src="https://github.com/user-attachments/assets/196cd784-c1f5-45a9-8b77-1131e2f428e7" />
 
+
+### Requête 5 : Répartition par type d'offres par type d’emploi (temps plein, stage, temps partiel)
+
+```
 
 -- 5 : Répartition par type d'offres par type d’emploi (temps plein, stage, temps partiel).
 
@@ -436,8 +489,10 @@ GROUP BY work_type
 ORDER BY nb_offres DESC;
 
 ```
+<img width="992" height="319" alt="Requete 5" src="https://github.com/user-attachments/assets/0abc7fca-6ac9-4984-8f37-caa845262522" />
 
-## VI. Application Streamlit
+
+## 6. Application Streamlit
 
 L'objectif ici est de concevoir une application permettant de visualiser de manière interactive les résultats des analyses effectuées ci-haut.
 Pour rendre le rapport interactif, nous avons implémenté :
@@ -579,294 +634,93 @@ with c5:
     st.plotly_chart(fig5, use_container_width=True)
 
 ```
+<img width="1264" height="504" alt="Streamlit1" src="https://github.com/user-attachments/assets/e1cc204d-cec5-43ee-8e2e-98500d9b964b" />
 
-## VII. Analyses et interprétations
+### Visualisation Requêtes  1 & 2 :
 
-La dernière étape a consisté à valider la cohérence des graphiques avec la réalité du marché de l'emploi LinkedIn (ex: prédominance du secteur "Computer Software", importance des PME dans le volume d'offres).
+<img width="1188" height="500" alt="Streamlit2" src="https://github.com/user-attachments/assets/4fb6f128-e4bd-4cf4-b1ed-090b272fa8fe" />
 
-### 1. Analyse de la demande : Domination des secteurs technologiques
-L'analyse du Top 10 des secteurs (Question 4) révèle généralement une prédominance du secteur "Computer Software" et des services technologiques.
+### Visualisation Requêtes  3, 4 & 5 :
 
-** Interprétation : ** Cela confirme que la transformation digitale reste le principal moteur de l'emploi mondial. Pour un expert en stratégie digitale (votre profil), cela montre que les opportunités ne se limitent pas aux entreprises de la Tech, mais s'étendent à tous les secteurs qui recrutent ces compétences pour se moderniser.
+<img width="1220" height="464" alt="Streamlit3" src="https://github.com/user-attachments/assets/01226234-506e-4b74-8608-0d618f49edeb" />
 
-### 2. Analyse des salaires : Corrélation entre rareté et expertise
-En observant les Salaires par secteur (Question 2), on remarque souvent que les titres de postes les plus fréquents ne sont pas forcément les mieux payés.
 
-** Interprétation : ** Les salaires les plus élevés se concentrent sur des rôles de niche (Data Architects, Cybersecurity Managers) ou des rôles de direction. Cela illustre la tension sur le marché : les entreprises sont prêtes à offrir des primes significatives pour des compétences techniques pointues que le système de formation peine à fournir en volume.
 
-### 3. Analyse de la structure du marché : Le poids des PME vs Multinationales
-Le graphique sur la Taille d'entreprise (Question 3) permet de voir qui recrute réellement.
+## 7. Analyses et interprétations
 
-** Interprétation : ** Si les multinationales captent souvent l'attention médiatique, les PME/TPE représentent souvent une part massive (souvent plus de 50%) du volume d'offres. Pour une stratégie de recherche d'emploi ou d'alternance, cela signifie qu'il est crucial de ne pas cibler uniquement les "grands noms" mais d'explorer le tissu des entreprises de taille intermédiaire, souvent plus agiles.
+Cette étape consiste à valider la cohérence des graphiques avec la réalité du marché de l'emploi LinkedIn (ex: prédominance du secteur "Computer Software", importance des PME dans le volume d'offres).
 
-### 4. Analyse des modes de travail : La mutation des contrats
-L'analyse des Types de contrats (Question 5) met en lumière la flexibilité du marché.
-
-** Interprétation : ** La présence importante du "Full-time" mixé à une montée du "Contract" ou du "Remote" (selon les données de la table work_type) indique une hybridation du travail. Les entreprises cherchent de plus en plus de la flexibilité, ce qui favorise l'émergence de missions de consulting ou de freelancing au sein même des structures salariées classiques.
-
-### 5. Analyse de l'évolution des métiers : Le "Skill Gap"
+### Requête 1. Analyse de l'évolution des métiers : Le "Skill Gap"
 En comparant les Intitulés de postes (Question 1), on voit apparaître des métiers hybrides (ex: Marketing Automation Manager, Data-Driven Marketer).
 
-** Interprétation : ** Le marché ne cherche plus seulement des "généralistes", mais des profils capables de faire le pont entre le business et la technologie. Nous remarquons que c'est le cœur même de notre formation MBA : l'innovation technologique au service de la stratégie.
+* **Interprétation :** Le marché ne cherche plus seulement des "généralistes", mais des profils capables de faire le pont entre le business et la technologie. Nous remarquons que c'est le cœur même de notre formation MBA : l'innovation technologique au service de la stratégie.
+
+### Requête 2. Analyse des salaires : Corrélation entre rareté et expertise
+En observant les Salaires par secteur (Question 2), on remarque souvent que les titres de postes les plus fréquents ne sont pas forcément les mieux payés.
+
+* **Interprétation :** Les salaires les plus élevés se concentrent sur des rôles de niche (Data Architects, Cybersecurity Managers) ou des rôles de direction. Cela illustre la tension sur le marché : les entreprises sont prêtes à offrir des primes significatives pour des compétences techniques pointues que le système de formation peine à fournir en volume.
+
+### Requête 3. Analyse de la structure du marché : Le poids des PME vs Multinationales
+Le graphique sur la Taille d'entreprise (Question 3) permet de voir qui recrute réellement.
+
+* **Interprétation :** Si les multinationales captent souvent l'attention médiatique, les PME/TPE représentent souvent une part massive (souvent plus de 50%) du volume d'offres. Pour une stratégie de recherche d'emploi ou d'alternance, cela signifie qu'il est crucial de ne pas cibler uniquement les "grands noms" mais d'explorer le tissu des entreprises de taille intermédiaire, souvent plus agiles.
+
+### Requête 4. Analyse de la demande : Domination des secteurs technologiques
+L'analyse du Top 10 des secteurs (Question 4) révèle généralement une prédominance du secteur "Computer Software" et des services technologiques.
+
+* **Interprétation :** Cela confirme que la transformation digitale reste le principal moteur de l'emploi mondial. Cela montre que les opportunités ne se limitent pas aux entreprises de la Tech, mais s'étendent à tous les secteurs qui recrutent ces compétences pour se moderniser.
+
+### Requête 5. Analyse des modes de travail : La mutation des contrats
+L'analyse des Types de contrats (Question 5) met en lumière la flexibilité du marché.
+
+* **Interprétation :** La présence importante du "Full-time" mixé à une montée du "Contract" ou du "Remote" (selon les données de la table work_type) indique une hybridation du travail. Les entreprises cherchent de plus en plus de la flexibilité, ce qui favorise l'émergence de missions de consulting ou de freelancing au sein même des structures salariées classiques.
 
 
-
-## VIII. Problèmes rencontrés et solutions apportées
+## 8. Problèmes rencontrés et solutions apportées
 
 Dans cette section, nous mettons en avant la transition de la donnée brute (Silver) vers la donnée exploitable (Gold).
 
-### 1. Problème de granularité et "effet entonnoir" (Requêtes 1 & 2)
-** Problème : ** Lors des premières jointures entre les offres d'emploi et les secteurs d'activité, le volume de données chutait de manière anormale (seulement 4 secteurs affichés sur des centaines).
+### a. Problème de granularité et "effet entonnoir" (Requêtes 1 & 2)
+* **Problème :** Lors des premières jointures entre les offres d'emploi et les secteurs d'activité, le volume de données chutait de manière anormale (seulement 4 secteurs affichés sur des centaines).
 
-** Cause : ** Une erreur de clé de jointure. Nous tentions de lier l'ID du secteur (industry_id) avec l'ID de l'entreprise (company_id), deux valeurs numériques sans relation logique.
+* **Cause :**  Une erreur de clé de jointure. Nous tentions de lier l'ID du secteur (industry_id) avec l'ID de l'entreprise (company_id), deux valeurs numériques sans relation logique.
 
-** Solution : ** Reconstruction de la "chaîne de confiance" relationnelle. Nous avons identifié que le champ company_name de la table des offres contenait en réalité l'ID numérique de l'entreprise. La jointure a été corrigée pour passer par la table pivot COMPANY_INDUSTRIES en utilisant company_id.
+* **Solution :** Reconstruction de la "chaîne de confiance" relationnelle. Nous avons identifié que le champ company_name de la table des offres contenait en réalité l'ID numérique de l'entreprise. La jointure a été corrigée pour passer par la table pivot COMPANY_INDUSTRIES en utilisant company_id.
 
-### 2. Doublons de lignes lors des jointures (Requête 2)
-** Problème : ** Le Top 10 des salaires affichait parfois 10 fois la même ligne pour un seul secteur (ex: "Accounting").
+### b. Doublons de lignes lors des jointures (Requête 2)
+* **Problème :** Le Top 10 des salaires affichait parfois 10 fois la même ligne pour un seul secteur (ex: "Accounting").
 
-** Cause : ** La structure de la table des secteurs d'entreprise générait des produits cartésiens (doublons) lors de la jointure, et la fonction de fenêtrage ROW_NUMBER() attribuait un rang différent à des lignes identiques.
+* **Cause :** La structure de la table des secteurs d'entreprise générait des produits cartésiens (doublons) lors de la jointure, et la fonction de fenêtrage ROW_NUMBER() attribuait un rang différent à des lignes identiques.
 
-** Solution : ** Utilisation d'une CTE (Common Table Expression) intermédiaire incluant une clause DISTINCT pour nettoyer les données avant d'appliquer le classement statistique.
+* **Solution :** Utilisation d'une CTE (Common Table Expression) intermédiaire incluant une clause DISTINCT pour nettoyer les données avant d'appliquer le classement statistique.
 
-### 3. Configuration de l'environnement applicatif (Streamlit)
-** Problème : ** Erreur ModuleNotFoundError lors de l'importation de bibliothèques de visualisation (Plotly).
+### c. Configuration de l'environnement applicatif (Streamlit)
+* **Problème :** Erreur ModuleNotFoundError lors de l'importation de bibliothèques de visualisation (Plotly).
 
-** Cause : ** L'environnement isolé de Snowflake (SiS) ne charge pas par défaut les bibliothèques tierces.
+* **Cause :** L'environnement isolé de Snowflake (SiS) ne charge pas par défaut les bibliothèques tierces.
 
-** Solution : ** Déclaration explicite des dépendances dans le gestionnaire de paquets (Packages) de l'interface Snowflake pour inclure plotly et pandas.
+* **Solution :** Déclaration explicite des dépendances dans le gestionnaire de paquets (Packages) de l'interface Snowflake pour inclure plotly et pandas.
 
 
+## 9. Conclusion
 
+Ce projet nous a permis de transformer une base de données brute issue de LinkedIn en un outil d'aide à la décision interactif. Au-delà de l'aspect technique, ce travail souligne plusieurs points fondamentaux :
 
+* **Maîtrise du pipeline Data :** De l'ingestion dans Snowflake au déploiement d'une interface Streamlit, chaque étape a permis de valider l'importance de la qualité des données (Data Quality). La résolution des problèmes de jointures et de typage a été déterminante pour garantir la fiabilité des indicateurs présentés.
 
+* **Vision Stratégique :** Les analyses extraites confirment une mutation profonde du marché de l'emploi en 2026. La forte corrélation entre les secteurs technologiques et les hauts niveaux de rémunération montre que l'expertise digitale n'est plus un avantage compétitif, mais un prérequis.
 
+* **Optimisation de l'Expérience Utilisateur :** L'utilisation de bibliothèques modernes comme Plotly et les fonctions de mise en cache de Streamlit démontrent qu'un dashboard efficace doit être à la fois rapide, précis et visuellement intuitif.
 
 
+## 10. Perspectives
 
+Pour aller plus loin, ce projet pourrait être enrichi par :
 
+* **L'intégration de modèles de Machine Learning :** Pour prédire l'évolution des salaires en fonction des compétences listées.
 
+* **L'automatisation du flux (ETL) :** Pour mettre à jour le dashboard en temps réel via des tâches planifiées sur Snowflake.
 
-**Snowflake Cortex AI** : Snowflake Cortex AI est un service entièrement managé conçu pour exploiter le potentiel de cette technologie auprès de tous les collaborateurs d’une organisation, quels que soient leurs niveaux de compétences techniques. Il donne accès à des modèles de langage de grande taille (LLM) de premier plan, permettant aux utilisateurs de concevoir et de déployer facilement des applications basées sur l’IA.
+* **Analyse de sentiment :** Utiliser l'IA pour analyser les descriptions de postes et identifier les "soft skills" les plus recherchées.
 
-Dans cet exercice, nous explorons Cortex Analyst, l’une des fonctionnalités phares de la famille Snowflake Cortex AI.
 
-**Cortex Analyst :**
-Cortex Analyst permet aux utilisateurs métiers d’interagir avec des données structurées en langage naturel, afin d’obtenir des réponses plus rapidement, d’accéder à des analyses en libre-service et de gagner un temps précieux.
-
-Commençons par un exemple simple utilisant la fonction **TRANSLATE** :
-
-```
-select SNOWFLAKE.CORTEX.TRANSLATE('Hello Everyone', '', 'fr') AS greeting;
-```
-
-La colonne REVIEW_TEXT de FACT_REVIEWS contient des avis dans différentes langues. Commençons par les traduire en anglais afin de vérifier si le sentiment correspond bien au contenu de l’avis.
-
-* Créez un nouvel entrepôt (Warehouse) avec davantage de ressources de calcul.
-
-```
-CREATE OR REPLACE WAREHOUSE XLARGE_COMPUTE_WH WITH
-COMMENT = 'Large warehouse for cortex analyst'
-    WAREHOUSE_TYPE = 'standard'
-    WAREHOUSE_SIZE = 'xlarge'
-    MIN_CLUSTER_COUNT = 1
-    MAX_CLUSTER_COUNT = 2
-    SCALING_POLICY = 'standard'
-    AUTO_SUSPEND = 60
-    AUTO_RESUME = true
-    INITIALLY_SUSPENDED = true;
-```
- 
-```
-USE WAREHOUSE XLARGE_COMPUTE_WH;
-```
-
-```
-CREATE OR REPLACE TABLE AIRBNB.GOLD.FULL_MOON_REVIEWS_TRANSLATED AS
-SELECT 
-    LISTING_ID,
-    REVIEW_DATE, 
-    REVIEWER_NAME, 
-    REVIEW_TEXT, 
-    SNOWFLAKE.CORTEX.TRANSLATE(REVIEW_TEXT, '', 'en') AS TRANSLATED_REVIEW_TEXT,
-    SENTIMENT,
-    IS_FULL_MOON  
-    FROM AIRBNB.GOLD.FULL_MOON_REVIEWS
-    LIMIT 100;
-```
-
-* Ensuite, nous utiliserons les modèles pré-entraînés de Snowflake Cortex pour générer des scores de sentiment pour chaque avis.
-
-```
-CREATE OR REPLACE TABLE AIRBNB.GOLD.FULL_MOON_REVIEWS_AUGMENTED AS
-SELECT 
-    LISTING_ID,
-    REVIEW_DATE, 
-    REVIEWER_NAME, 
-    TRANSLATED_REVIEW_TEXT,
-    SENTIMENT,
-    SNOWFLAKE.CORTEX.SENTIMENT(TRANSLATED_REVIEW_TEXT) AS SENTIMENT_GENERATED,
-    IS_FULL_MOON  
-    FROM AIRBNB.GOLD.FULL_MOON_REVIEWS_TRANSLATED;
-```
-
-* Les scores de sentiment vont de -1 (totalement négatif) à 1 (totalement positif). Nous les classerons en trois catégories : négatif (-1 à -0,3), neutre (-0,3 à 0,3) et positif (0,3 à 1).
-
-```
-select min(SENTIMENT_GENERATED), max(SENTIMENT_GENERATED) from AIRBNB.GOLD.FULL_MOON_REVIEWS_AUGMENTED;
-```
-
-
-```
-CREATE OR REPLACE TABLE AIRBNB.GOLD.FULL_MOON_REVIEWS_AUGMENTED AS
-SELECT 
-    LISTING_ID,
-    REVIEW_DATE, 
-    REVIEWER_NAME, 
-    TRANSLATED_REVIEW_TEXT,
-    SENTIMENT,
-    CASE 
-        WHEN SNOWFLAKE.CORTEX.SENTIMENT(TRANSLATED_REVIEW_TEXT) < -0.3 THEN 'negative'
-     
-        WHEN SNOWFLAKE.CORTEX.SENTIMENT(TRANSLATED_REVIEW_TEXT) BETWEEN -0.3 AND 0.3  THEN 'neutral'
-     
-        WHEN SNOWFLAKE.CORTEX.SENTIMENT(TRANSLATED_REVIEW_TEXT) > 0.3 THEN 'positive'
-    END AS  SENTIMENT_GENERATED,
-    IS_FULL_MOON  
-    FROM AIRBNB.GOLD.FULL_MOON_REVIEWS_TRANSLATED;
-```
-
-* Interrogez la table `FULL_MOON_REVIEWS_AUGMENTED`.
-
-```
-SELECT * FROM AIRBNB.GOLD.FULL_MOON_REVIEWS_AUGMENTED
-```
-
-* Dans les exemples suivants, nous montrerons comment exploiter les fonctions `EXTRACT_ANSWER` et `SUMMARIZE` afin d’obtenir davantage d’informations et d’analyses à partir de nos données.
-
-* EXTRACT_ANSWER:
-
-```
-select TRANSLATED_REVIEW_TEXT,SENTIMENT_GENERATED, SNOWFLAKE.CORTEX.EXTRACT_ANSWER(TRANSLATED_REVIEW_TEXT, 'Were the guests satisfied with their stay?') as extract_answer from AIRBNB.GOLD.FULL_MOON_REVIEWS_AUGMENTED limit 100;
-```
-
-* SUMMARIZE:
-
-```
-select TRANSLATED_REVIEW_TEXT, SNOWFLAKE.CORTEX.SUMMARIZE(TRANSLATED_REVIEW_TEXT) as Summary from AIRBNB.GOLD.FULL_MOON_REVIEWS_AUGMENTED limit 100;
-```
-
-## Créer des applications web de données :
-Streamlit est une bibliothèque Python open source qui facilite la création et le partage d’applications web personnalisées pour l’analytique et la data science.
-
-Nous allons commencer par développer notre première application web à partir de données Airbnb.
-
-```
-import streamlit as st
-from snowflake.snowpark.context import get_active_session
-
-
-st.title(f"AIRBNB Web App")
-st.write(
-  """This is our first Streamlit web app 
-     application baseb on AIRBNB data!
-  """
-)
-
-# Get connection
-session = get_active_session()
-
-# execute sql statement
-sql = f"select count(*) as NB_LISTINGS, SENTIMENT_GENERATED from  AIRBNB.GOLD.FULL_MOON_REVIEWS_AUGMENTED group by SENTIMENT_GENERATED order by NB_LISTINGS asc;"
-
-data = session.sql(sql).collect()
-
-# Create a simple bar chart
-
-st.subheader("Sentiment-Based Distribution of Listings")
-st.bar_chart(data=data, x="SENTIMENT_GENERATED", y="NB_LISTINGS", color="SENTIMENT_GENERATED")
-
-st.subheader("Underlying data")
-st.dataframe(data, use_container_width=True)
-
-```
-
-![alt text](../images/img33.png)
-
-
-* Ensuite, nous améliorerons le diagramme en barres en y ajoutant des filtres interactifs pour offrir une expérience utilisateur plus dynamique.
-
-```
-import streamlit as st
-from snowflake.snowpark.context import get_active_session
-
-
-st.title(f"AIRBNB Web App")
-st.write(
-  """This is our first Streamlit web app 
-     application baseb on AIRBNB data!
-  """
-)
-
-# Get connection
-session = get_active_session()
-
-# Create a select box
-option = st.selectbox(
-     'Select the Review Name?',
-( 'Michael','Daniel','Thomas','David','Anna','Laura','Alexander','Julia','Maria','Martin','Andrea','Sarah','Christian','Lisa','Alex','Simon','Mark','Chris','Paul','Stefan','Nicole','Robert'))
-
-# execute sql statement
-sql = f"select count(*) as NB_LISTINGS, SENTIMENT_GENERATED from  AIRBNB.GOLD.FULL_MOON_REVIEWS_AUGMENTED  where reviewer_name= '{option}'group by SENTIMENT_GENERATED order by NB_LISTINGS asc;"
-
-data = session.sql(sql).collect()
-
-# Create a simple bar chart
-
-st.subheader("Sentiment-Based Distribution of Listings")
-st.bar_chart(data=data, x="SENTIMENT_GENERATED", y="NB_LISTINGS", color="SENTIMENT_GENERATED")
-
-st.subheader("Underlying data")
-st.dataframe(data, use_container_width=True)
-
-```
-
-![alt text](../images/img34.png)
-
-## Réinitialisez votre compte Snowflake.
-Exécutez les scripts ci-dessous pour rétablir votre compte dans l’état requis afin de relancer cet atelier.
-
-```
-USE ROLE ACCOUNTADMIN;
-
-USE DATABASE AIRBNB;
-
-USE SCHEMA SILVER;
-
-DROP TABLE IF EXISTS HOSTS;
-
-DROP TABLE IF EXISTS LISTINGS; 
-
-DROP TABLE IF EXISTS REVIEWS; 
-
-DROP TABLE IF EXISTS FULL_MOON_DATE; 
-
-USE SCHEMA GOLD;
-
-DROP VIEW IF EXISTS DIM_HOSTS;
-
-DROP VIEW IF EXISTS DIML_ISTINGS; 
-
-DROP TABLE IF EXISTS FACT_REVIEWS; 
-
-DROP TABLE IF EXISTS FULL_MOON_REVIEWS;
-
-DROP TABLE IF EXISTS FULL_MOON_REVIEWS_TRANSLATED;
-
-DROP TABLE IF EXISTS FULL_MOON_REVIEWS_AUGMENTED;
-
-DROP DATABASE IF EXISTS AIRBNB;
-
-DROP WAREHOUSE IF EXISTS XLARGE_COMPUTE_WH;
-
-```
